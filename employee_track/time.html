@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee Time Tracker</title>
+  <link rel="stylesheet" href="time.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="card animate-pop">
+      <h1>🕒 Employee Time Tracker</h1>
+      <p class="subtitle">Record your daily time-in and time-out with ease</p>
+
+      <input type="text" id="name" placeholder="Enter your name" />
+
+      <div class="btn-group">
+        <button id="btnIn" class="btn in">Time In</button>
+        <button id="btnOut" class="btn out">Time Out</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3>📅 View Attendance History</h3>
+      <div class="filter">
+        <input type="date" id="datePicker" />
+        <button id="btnView" class="btn view">View History</button>
+      </div>
+
+      <div id="log" class="log fade-in"></div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <!-- JS Logic -->
+  <script src="time.js"></script>
+</body>
+</html>
