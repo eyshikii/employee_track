@@ -1,4 +1,4 @@
-// ✅ Firebase configuration
+// ✅ Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyDGS5r_ZgLKxoqzQR1XiZac1sMFyjJVBCM",
   authDomain: "employeetrac-d54e0.firebaseapp.com",
@@ -9,130 +9,87 @@ const firebaseConfig = {
   appId: "1:188113067539:web:44146b8e0c31c300b969e6"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// =======================
-// 📅 Helper functions
-// =======================
-function getTime() {
-  return new Date().toLocaleString();
-}
+// Helper functions
+function getTime() { return new Date().toLocaleString(); }
+function getDateOnly() { return new Date().toISOString().split('T')[0]; }
 
-function getDateOnly() {
-  return new Date().toISOString().split("T")[0];
-}
-
-// =======================
-// 🕒 Time In / Time Out
-// =======================
+// Time In / Out
 function timeIn() {
-  const name = document.getElementById("name").value.trim();
-  if (!name) return alert("Please enter your name");
-  const time = getTime();
-  const date = getDateOnly();
-  saveToFirebase(name, "IN", time, date);
+  const name = document.getElementById('name').value.trim();
+  if (!name) return alert('Please enter your name');
+  const time = getTime(), date = getDateOnly();
+  db.ref('attendance').push({ name, action: 'IN', time, date });
 }
 
 function timeOut() {
-  const name = document.getElementById("name").value.trim();
-  if (!name) return alert("Please enter your name");
-  const time = getTime();
-  const date = getDateOnly();
-  saveToFirebase(name, "OUT", time, date);
+  const name = document.getElementById('name').value.trim();
+  if (!name) return alert('Please enter your name');
+  const time = getTime(), date = getDateOnly();
+  db.ref('attendance').push({ name, action: 'OUT', time, date });
 }
 
-// =======================
-// 💾 Save to Firebase
-// =======================
-function saveToFirebase(name, action, time, date) {
-  db.ref("attendance")
-    .push({ name, action, time, date })
-    .then(() => {
-      alert(`${action} recorded for ${name}`);
-    })
-    .catch((error) => console.error("Error:", error));
-}
-
-// =======================
-// 📋 Display Logs
-// =======================
+// Display Logs
 function displayLogs(filterDate = null) {
-  const log = document.getElementById("log");
-  log.innerHTML = "<p>Loading...</p>";
-
-  db.ref("attendance").on("value", (snapshot) => {
-    log.innerHTML = "";
-
-    if (!snapshot.exists()) {
-      log.innerHTML = "<p>No records found.</p>";
-      return;
-    }
-
+  const log = document.getElementById('log');
+  log.innerHTML = '<p>Loading...</p>';
+  db.ref('attendance').on('value', snapshot => {
+    log.innerHTML = '';
+    if (!snapshot.exists()) return log.innerHTML = '<p>No records found.</p>';
     const records = [];
-    snapshot.forEach((child) => {
-      records.push(child.val());
+    snapshot.forEach(child => records.push(child.val()));
+    const filtered = filterDate ? records.filter(r => r.date === filterDate) : records;
+    if (filtered.length === 0) return log.innerHTML = '<p>No records for this date.</p>';
+    filtered.sort((a,b)=>new Date(a.time)-new Date(b.time));
+    let table = `<table><tr><th>Date</th><th>Name</th><th>Action</th><th>Time</th></tr>`;
+    filtered.forEach(r=>{
+      table += `<tr><td>${r.date}</td><td>${r.name}</td><td>${r.action}</td><td>${r.time}</td></tr>`;
     });
-
-    // Filter by date if selected
-    const filtered = filterDate
-      ? records.filter((r) => r.date === filterDate)
-      : records;
-
-    if (filtered.length === 0) {
-      log.innerHTML = "<p>No records found for this date.</p>";
-      return;
-    }
-
-    // ✅ Sort properly by date + time
-    filtered.sort(
-      (a, b) =>
-        new Date(a.date + " " + a.time) - new Date(b.date + " " + b.time)
-    );
-
-    // ✅ Build one complete table
-    let table = `
-      <table border="1" cellpadding="8" cellspacing="0" style="margin-top:10px;width:100%;border-collapse:collapse;">
-        <thead style="background:#007bff;color:white;">
-          <tr>
-            <th>Date</th>
-            <th>Name</th>
-            <th>Action</th>
-            <th>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-
-    filtered.forEach((r) => {
-      table += `
-        <tr>
-          <td>${r.date}</td>
-          <td>${r.name}</td>
-          <td>${r.action}</td>
-          <td>${r.time}</td>
-        </tr>
-      `;
-    });
-
-    table += `</tbody></table>`;
+    table += `</table>`;
     log.innerHTML = table;
   });
 }
 
-// =======================
-// ⚙️ Event listeners
-// =======================
-document.getElementById("btnIn").addEventListener("click", timeIn);
-document.getElementById("btnOut").addEventListener("click", timeOut);
-document.getElementById("btnView").addEventListener("click", () => {
-  const selectedDate = document.getElementById("datePicker").value;
-  if (!selectedDate) return alert("Please select a date");
-  displayLogs(selectedDate);
+// Event listeners
+document.getElementById('btnIn').addEventListener('click', timeIn);
+document.getElementById('btnOut').addEventListener('click', timeOut);
+document.getElementById('btnView').addEventListener('click', ()=>{
+  const d=document.getElementById('datePicker').value;
+  if(!d)return alert('Please select a date');
+  displayLogs(d);
 });
 
-// =======================
-// 🚀 Load all logs on start
-// =======================
-window.onload = () => displayLogs();
+// ✅ Modal Delete Feature
+const modal=document.getElementById('deleteModal');
+const confirmDelete=document.getElementById('confirmDelete');
+const cancelDelete=document.getElementById('cancelDelete');
+let dateToDelete=null;
+
+document.getElementById('btnDelete').addEventListener('click',()=>{
+  const d=document.getElementById('datePicker').value;
+  if(!d)return alert('Please select a date first.');
+  dateToDelete=d;
+  modal.style.display='flex';
+});
+
+cancelDelete.addEventListener('click',()=>modal.style.display='none');
+confirmDelete.addEventListener('click',()=>{
+  if(!dateToDelete)return;
+  db.ref('attendance').once('value',snapshot=>{
+    snapshot.forEach(child=>{
+      if(child.val().date===dateToDelete)
+        db.ref('attendance').child(child.key).remove();
+    });
+    modal.style.display='none';
+    alert(`✅ All records for ${dateToDelete} deleted.`);
+    displayLogs(dateToDelete);
+  });
+});
+window.addEventListener('click',e=>{
+  if(e.target===modal)modal.style.display='none';
+});
+
+// Load logs on startup
+window.onload=()=>displayLogs();
